@@ -20,22 +20,44 @@ class Message extends Object
     /**
      * @var mixed
      */
-    public $id;
+    private $_id;
     /**
      * @var string
      */
-    public $payload;
+    private $_payload;
     /**
      * @var array
      */
     private $_params;
 
     /**
+     * @param mixed $id
+     * @param string $payload
      * @param array $params
+     * @param array $config
      */
-    public function setParams(array $params)
+    public function __construct($id, $payload, array $params = [], array $config = [])
     {
+        $this->_id = $id;
+        $this->_payload = $payload;
         $this->_params = $params;
+        parent::__construct($config);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getId()
+    {
+        return $this->_id;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPayload()
+    {
+        return $this->_payload;
     }
 
     /**
