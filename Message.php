@@ -13,6 +13,9 @@ use yii\base\Object;
 /**
  * Message
  *
+ * @property mixed $id
+ * @property mixed $payload
+ *
  * @author Alexander Kochetov <creocoder@gmail.com>
   */
 class Message extends Object
