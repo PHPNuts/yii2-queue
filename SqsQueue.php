@@ -105,7 +105,7 @@ class SqsQueue extends Component implements QueueInterface
      * @inheritdoc
      */
     public function purge($queue) {
-        $this->client->deleteQueue(['QueueUrl' => $queue]);
+        $this->client->purgeQueue(['QueueUrl' => $queue]);
     }
 
     /**
