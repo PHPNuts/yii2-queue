@@ -8,6 +8,7 @@
 namespace yii\queue;
 
 use Aws\Sqs\SqsClient;
+use Yii;
 use yii\base\Component;
 use yii\base\InvalidConfigException;
 
@@ -19,51 +20,24 @@ use yii\base\InvalidConfigException;
 class SqsQueue extends Component implements QueueInterface
 {
     /**
-     * @var string
+     * @var SqsClient|array|string
      */
-    public $key;
-    /**
-     * @var string
-     */
-    public $secret;
-    /**
-     * @var string
-     */
-    public $region;
-    /**
-     * @var string
-     */
-    public $version = 'latest';
-    /**
-     * @var SqsClient
-     */
-    protected $client;
+    public $sqs;
 
     /**
      * @inheritdoc
      */
     public function init()
     {
-        if ($this->key === null) {
-            throw new InvalidConfigException('The "key" property must be set.');
+        parent::init();
+
+        if ($this->sqs === null) {
+            throw new InvalidConfigException('The "sqs" property must be set.');
         }
 
-        if ($this->secret === null) {
-            throw new InvalidConfigException('The "secret" property must be set.');
+        if (!$this->sqs instanceof SqsClient) {
+            $this->sqs = new SqsClient($this->sqs);
         }
-
-        if ($this->region === null) {
-            throw new InvalidConfigException('The "region" property must be set.');
-        }
-
-        $this->client = new SqsClient([
-            'credentials' => [
-                'key' => $this->key,
-                'secret' => $this->secret,
-            ],
-            'region' => $this->region,
-            'version' => $this->version,
-        ]);
     }
 
     /**
@@ -71,7 +45,7 @@ class SqsQueue extends Component implements QueueInterface
      */
     public function push($payload, $queue, $delay = 0)
     {
-        return $this->client->sendMessage([
+        return $this->sqs->sendMessage([
             'QueueUrl' => $queue,
             'MessageBody' => $payload,
             'DelaySeconds' => $delay,
@@ -83,7 +57,7 @@ class SqsQueue extends Component implements QueueInterface
      */
     public function pop($queue)
     {
-        $response = $this->client->receiveMessage(['QueueUrl' => $queue]);
+        $response = $this->sqs->receiveMessage(['QueueUrl' => $queue]);
 
         if (count($response['Messages']) < 1) {
             return null;
@@ -105,7 +79,7 @@ class SqsQueue extends Component implements QueueInterface
      * @inheritdoc
      */
     public function purge($queue) {
-        $this->client->purgeQueue(['QueueUrl' => $queue]);
+        $this->sqs->purgeQueue(['QueueUrl' => $queue]);
     }
 
     /**
@@ -113,7 +87,7 @@ class SqsQueue extends Component implements QueueInterface
      */
     public function delete(Message $message)
     {
-        $this->client->deleteMessage([
+        $this->sqs->deleteMessage([
             'QueueUrl' => $message->getParam('QueueUrl'),
             'ReceiptHandle' => $message->getParam('ReceiptHandle'),
         ]);
@@ -124,7 +98,7 @@ class SqsQueue extends Component implements QueueInterface
      */
     public function release(Message $message, $delay = 0)
     {
-        $this->client->changeMessageVisibility([
+        $this->sqs->changeMessageVisibility([
             'QueueUrl' => $message->getParam('QueueUrl'),
             'ReceiptHandle' => $message->getParam('ReceiptHandle'),
             'VisibilityTimeout' => $delay,
