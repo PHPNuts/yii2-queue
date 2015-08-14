@@ -15,32 +15,27 @@ namespace yii\queue;
 interface QueueInterface
 {
     /**
+     * Pushs payload to the queue.
+     *
      * @param string $payload
      * @param integer $delay
      * @param string $queue
-     * @return mixed
+     * @return string
      */
     public function push($payload, $queue, $delay = 0);
 
     /**
+     * Pops message from the queue.
+     *
      * @param string $queue
      * @return Message|null
      */
     public function pop($queue);
 
     /**
+     * Purges the queue.
+     *
      * @param string $queue
      */
     public function purge($queue);
-
-    /**
-     * @param Message $message
-     * @param integer $delay
-     */
-    public function release(Message $message, $delay = 0);
-
-    /**
-     * @param Message $message
-     */
-    public function delete(Message $message);
 }
