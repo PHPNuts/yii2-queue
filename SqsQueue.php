@@ -63,16 +63,13 @@ class SqsQueue extends Component implements QueueInterface
             return null;
         }
 
-        $params = reset($response['Messages']);
-        $id = $params['MessageId'];
-        $payload = $params['Body'];
-        unset($params['MessageId'], $params['Body']);
+        $config = reset($response['Messages']);
 
-        if (!isset($params['QueueUrl'])) {
-            $params['QueueUrl'] = $queue;
+        if (!isset($config['QueueUrl'])) {
+            $config['QueueUrl'] = $queue;
         }
 
-        return new Message($id, $payload, $params);
+        return new Message($this->sqs, $config);
     }
 
     /**
@@ -80,28 +77,5 @@ class SqsQueue extends Component implements QueueInterface
      */
     public function purge($queue) {
         $this->sqs->purgeQueue(['QueueUrl' => $queue]);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function delete(Message $message)
-    {
-        $this->sqs->deleteMessage([
-            'QueueUrl' => $message->getParam('QueueUrl'),
-            'ReceiptHandle' => $message->getParam('ReceiptHandle'),
-        ]);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function release(Message $message, $delay = 0)
-    {
-        $this->sqs->changeMessageVisibility([
-            'QueueUrl' => $message->getParam('QueueUrl'),
-            'ReceiptHandle' => $message->getParam('ReceiptHandle'),
-            'VisibilityTimeout' => $delay,
-        ]);
     }
 }
