@@ -43,11 +43,13 @@ class RedisQueue extends Component implements QueueInterface
      */
     public function push($payload, $queue, $delay = 0)
     {
-        $this->redis->executeCommand('ZADD', [
-            $queue . ':delayed',
-            time() + $delay,
-            Json::encode(['id' => $id = md5(uniqid('', true)), 'payload' => $payload]),
-        ]);
+        $payload = Json::encode(['id' => $id = md5(uniqid('', true)), 'payload' => $payload]);
+
+        if ($delay > 0) {
+            $this->redis->executeCommand('ZADD', [$queue . ':delayed', time() + $delay, $payload]);
+        } else {
+            $this->redis->executeCommand('RPUSH', [$queue, $payload]);
+        }
 
         return $id;
     }
@@ -101,11 +103,18 @@ class RedisQueue extends Component implements QueueInterface
      */
     public function release(Message $message, $delay = 0)
     {
-        $this->redis->executeCommand('ZADD', [
-            $message->getMeta('queue') . ':delayed',
-            time() + $delay,
-            $message->payload,
-        ]);
+        if ($delay > 0) {
+            $this->redis->executeCommand('ZADD', [
+                $message->getMeta('queue') . ':delayed',
+                time() + $delay,
+                $message->payload,
+            ]);
+        } else {
+            $this->redis->executeCommand('RPUSH', [
+                $message->getMeta('queue'),
+                $message->payload,
+            ]);
+        }
     }
 
     /**
