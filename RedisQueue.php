@@ -7,11 +7,12 @@
 
 namespace yii\queue;
 
+use Predis\Client;
+use Predis\Transaction\MultiExec;
 use Yii;
 use yii\base\Component;
-use yii\di\Instance;
+use yii\base\InvalidConfigException;
 use yii\helpers\Json;
-use yii\redis\Connection;
 
 /**
  * RedisQueue
@@ -21,9 +22,9 @@ use yii\redis\Connection;
 class RedisQueue extends Component implements QueueInterface
 {
     /**
-     * @var Connection|array|string
+     * @var Client|array|string
      */
-    public $redis = 'redis';
+    public $redis;
     /**
      * @var integer
      */
@@ -35,7 +36,14 @@ class RedisQueue extends Component implements QueueInterface
     public function init()
     {
         parent::init();
-        $this->redis = Instance::ensure($this->redis, Connection::className());
+
+        if ($this->redis === null) {
+            throw new InvalidConfigException('The "redis" property must be set.');
+        }
+
+        if (!$this->redis instanceof Client) {
+            $this->redis = new Client($this->redis);
+        }
     }
 
     /**
@@ -46,9 +54,9 @@ class RedisQueue extends Component implements QueueInterface
         $payload = Json::encode(['id' => $id = md5(uniqid('', true)), 'payload' => $payload]);
 
         if ($delay > 0) {
-            $this->redis->executeCommand('ZADD', [$queue . ':delayed', time() + $delay, $payload]);
+            $this->redis->zadd($queue . ':delayed', [$payload => time() + $delay]);
         } else {
-            $this->redis->executeCommand('RPUSH', [$queue, $payload]);
+            $this->redis->rpush($queue, [$payload]);
         }
 
         return $id;
@@ -59,28 +67,25 @@ class RedisQueue extends Component implements QueueInterface
      */
     public function pop($queue)
     {
-        $time = time();
-
         foreach ([':delayed', ':reserved'] as $type) {
-            $this->redis->executeCommand('WATCH', [$queue . $type]);
-            $this->redis->executeCommand('MULTI');
-            $data = $this->redis->executeCommand('ZRANGEBYSCORE', [$queue . $type, '-inf', $time]);
+            $options = ['cas' => true, 'watch' => $queue . $type];
+            $this->redis->transaction($options, function (MultiExec $transaction) use ($queue, $type) {
+                $data = $this->redis->zrangebyscore($queue . $type, '-inf', $time = time());
 
-            if (!empty($data)) {
-                $this->redis->executeCommand('ZREMRANGEBYSCORE', [$queue . $type, '-inf', $time]);
-                $this->redis->executeCommand('RPUSH', array_merge([$queue], $data));
-            }
-
-            $this->redis->executeCommand('EXEC');
+                if (!empty($data)) {
+                    $transaction->zremrangebyscore($queue . $type, '-inf', $time);
+                    $transaction->rpush($queue, $data);
+                }
+            });
         }
 
-        $data = $this->redis->executeCommand('LPOP', [$queue]);
+        $data = $this->redis->lpop($queue);
 
         if ($data === null) {
             return null;
         }
 
-        $this->redis->executeCommand('ZADD', [$queue . ':reserved', time() + $this->expire, $data]);
+        $this->redis->zadd($queue . ':reserved', [$data => time() + $this->expire]);
 
         $data = Json::decode($data);
         $id = $data['id'];
@@ -95,7 +100,7 @@ class RedisQueue extends Component implements QueueInterface
      * @inheritdoc
      */
     public function purge($queue) {
-        // @todo: implementation
+        $this->redis->del([$queue, $queue . ':delayed', $queue . ':reserved']);
     }
 
     /**
@@ -104,16 +109,9 @@ class RedisQueue extends Component implements QueueInterface
     public function release(Message $message, $delay = 0)
     {
         if ($delay > 0) {
-            $this->redis->executeCommand('ZADD', [
-                $message->getMeta('queue') . ':delayed',
-                time() + $delay,
-                $message->payload,
-            ]);
+            $this->redis->zadd($message->getMeta('queue') . ':delayed', [$message->payload => time() + $delay]);
         } else {
-            $this->redis->executeCommand('RPUSH', [
-                $message->getMeta('queue'),
-                $message->payload,
-            ]);
+            $this->redis->rpush($message->getMeta('queue'), [$message->payload]);
         }
     }
 
@@ -122,6 +120,6 @@ class RedisQueue extends Component implements QueueInterface
      */
     public function delete(Message $message)
     {
-        $this->redis->executeCommand('ZREM', [$message->getMeta('queue') . ':reserved', $message->payload]);
+        $this->redis->zrem($message->getMeta('queue') . ':reserved', $message->payload);
     }
 }

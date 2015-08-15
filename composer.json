@@ -17,8 +17,8 @@
         "yiisoft/yii2": "~2.0.0"
     },
     "require-dev": {
-        "yiisoft/yii2-redis": "~2.0.0",
         "aws/aws-sdk-php": "~3.0",
+        "predis/predis": "~1.0",
         "phpunit/phpunit": "~4.0",
         "phpunit/dbunit": "~1.0"
     },
