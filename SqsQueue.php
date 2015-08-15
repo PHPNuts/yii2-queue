@@ -78,4 +78,27 @@ class SqsQueue extends Component implements QueueInterface
     public function purge($queue) {
         $this->sqs->purgeQueue(['QueueUrl' => $queue]);
     }
+
+    /**
+     * @inheritdoc
+     */
+    public function release(Message $message, $delay = 0)
+    {
+        $this->sqs->changeMessageVisibility([
+            'QueueUrl' => $message->getMeta('QueueUrl'),
+            'ReceiptHandle' => $message->getMeta('ReceiptHandle'),
+            'VisibilityTimeout' => $delay,
+        ]);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function delete(Message $message)
+    {
+        $this->sqs->deleteMessage([
+            'QueueUrl' => $message->getMeta('QueueUrl'),
+            'ReceiptHandle' => $message->getMeta('ReceiptHandle'),
+        ]);
+    }
 }
