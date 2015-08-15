@@ -38,4 +38,19 @@ interface QueueInterface
      * @param string $queue
      */
     public function purge($queue);
+
+    /**
+     * Releases the message.
+     *
+     * @param Message $message
+     * @param integer $delay
+     */
+    public function release(Message $message, $delay = 0);
+
+    /**
+     * Deletes the message.
+     *
+     * @param Message $message
+     */
+    public function delete(Message $message);
 }
