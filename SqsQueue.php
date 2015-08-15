@@ -11,6 +11,7 @@ use Aws\Sqs\SqsClient;
 use Yii;
 use yii\base\Component;
 use yii\base\InvalidConfigException;
+use yii\helpers\Json;
 
 /**
  * SqsQueue
@@ -47,7 +48,7 @@ class SqsQueue extends Component implements QueueInterface
     {
         return $this->sqs->sendMessage([
             'QueueUrl' => $queue,
-            'MessageBody' => $payload,
+            'MessageBody' => is_string($payload) ? $payload : Json::encode($payload),
             'DelaySeconds' => $delay,
         ])->get('MessageId');
     }

@@ -17,7 +17,7 @@ interface QueueInterface
     /**
      * Pushs payload to the queue.
      *
-     * @param string $payload
+     * @param mixed $payload
      * @param integer $delay
      * @param string $queue
      * @return string

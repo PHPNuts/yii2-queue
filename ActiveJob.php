@@ -9,7 +9,6 @@ namespace yii\queue;
 
 use Yii;
 use yii\base\Object;
-use yii\helpers\Json;
 
 /**
  * ActiveJob
@@ -46,17 +45,9 @@ abstract class ActiveJob extends Object
      */
     public function push()
     {
-        $this->getQueue()->push($this->preparePayload(), $this->queueName());
-    }
-
-    /**
-     * @return string
-     */
-    protected function preparePayload()
-    {
-        return Json::encode([
+        $this->getQueue()->push([
             'serializer' => $this->serializer,
             'object' => call_user_func($this->serializer[0], $this),
-        ]);
+        ], $this->queueName());
     }
 }
