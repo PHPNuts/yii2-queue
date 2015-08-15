@@ -65,8 +65,8 @@ class SqsQueue extends Component implements QueueInterface
 
         $data = reset($response['Messages']);
         $id = $data['MessageId'];
-        $payload = $data['MessageBody'];
-        unset($data['MessageId'], $data['MessageBody']);
+        $payload = $data['Body'];
+        unset($data['MessageId'], $data['Body']);
 
         if (!isset($data['QueueUrl'])) {
             $data['QueueUrl'] = $queue;
