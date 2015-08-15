@@ -60,7 +60,7 @@ class RedisQueue extends Component implements QueueInterface
         $time = time();
 
         foreach ([':delayed', ':reserved'] as $type) {
-            // @todo: WATCH command
+            $this->redis->executeCommand('WATCH', [$queue . $type]);
             $this->redis->executeCommand('MULTI');
             $data = $this->redis->executeCommand('ZRANGEBYSCORE', [$queue . $type, '-inf', $time]);
 
