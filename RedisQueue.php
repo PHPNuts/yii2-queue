@@ -57,7 +57,20 @@ class RedisQueue extends Component implements QueueInterface
      */
     public function pop($queue)
     {
-        // @todo: migrate messages from queue:delayed using transaction
+        $time = time();
+
+        foreach ([':delayed', ':reserved'] as $type) {
+            // @todo: WATCH command
+            $this->redis->executeCommand('MULTI');
+            $data = $this->redis->executeCommand('ZRANGEBYSCORE', [$queue . $type, '-inf', $time]);
+
+            if (!empty($data)) {
+                $this->redis->executeCommand('ZREMRANGEBYSCORE', [$queue . $type, '-inf', $time]);
+                $this->redis->executeCommand('RPUSH', array_merge([$queue], $data));
+            }
+
+            $this->redis->executeCommand('EXEC');
+        }
 
         $data = $this->redis->executeCommand('LPOP', [$queue]);
 
