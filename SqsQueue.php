@@ -63,13 +63,16 @@ class SqsQueue extends Component implements QueueInterface
             return null;
         }
 
-        $config = reset($response['Messages']);
+        $data = reset($response['Messages']);
+        $id = $data['MessageId'];
+        $payload = $data['MessageBody'];
+        unset($data['MessageId'], $data['MessageBody']);
 
-        if (!isset($config['QueueUrl'])) {
-            $config['QueueUrl'] = $queue;
+        if (!isset($data['QueueUrl'])) {
+            $data['QueueUrl'] = $queue;
         }
 
-        return new Message($this->sqs, $config);
+        return new Message($id, $payload, $data);
     }
 
     /**
