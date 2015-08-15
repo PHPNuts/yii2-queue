@@ -59,7 +59,7 @@ class SqsQueue extends Component implements QueueInterface
     {
         $response = $this->sqs->receiveMessage(['QueueUrl' => $queue]);
 
-        if (count($response['Messages']) < 1) {
+        if (empty($response['Messages'])) {
             return null;
         }
 
