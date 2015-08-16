@@ -21,7 +21,7 @@ use yii\helpers\Json;
 class SqsQueue extends Component implements QueueInterface
 {
     /**
-     * @var SqsClient|array|string
+     * @var SqsClient|array
      */
     public $sqs;
 

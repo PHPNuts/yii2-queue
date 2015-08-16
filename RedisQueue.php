@@ -22,7 +22,7 @@ use yii\helpers\Json;
 class RedisQueue extends Component implements QueueInterface
 {
     /**
-     * @var Client|array|string
+     * @var Client|array
      */
     public $redis;
     /**
