@@ -44,10 +44,11 @@ abstract class ActiveJob extends Object
      * Pushs the job.
      *
      * @param integer $delay
+     * @return string
      */
     public function push($delay = 0)
     {
-        $this->getQueue()->push([
+        return $this->getQueue()->push([
             'serializer' => $this->serializer,
             'object' => call_user_func($this->serializer[0], $this),
         ], $this->queueName(), $delay);
