@@ -28,7 +28,7 @@ interface QueueInterface
      * Pops message from the queue.
      *
      * @param string $queue
-     * @return Message|null
+     * @return array|false
      */
     public function pop($queue);
 
@@ -42,15 +42,15 @@ interface QueueInterface
     /**
      * Releases the message.
      *
-     * @param Message $message
+     * @param array $message
      * @param integer $delay
      */
-    public function release(Message $message, $delay = 0);
+    public function release(array $message, $delay = 0);
 
     /**
      * Deletes the message.
      *
-     * @param Message $message
+     * @param array $message
      */
-    public function delete(Message $message);
+    public function delete(array $message);
 }

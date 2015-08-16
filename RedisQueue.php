@@ -51,7 +51,7 @@ class RedisQueue extends Component implements QueueInterface
      */
     public function push($payload, $queue, $delay = 0)
     {
-        $payload = Json::encode(['id' => $id = md5(uniqid('', true)), 'payload' => $payload]);
+        $payload = Json::encode(['id' => $id = md5(uniqid('', true)), 'body' => $payload]);
 
         if ($delay > 0) {
             $this->redis->zadd($queue . ':delayed', [$payload => time() + $delay]);
@@ -82,18 +82,17 @@ class RedisQueue extends Component implements QueueInterface
         $data = $this->redis->lpop($queue);
 
         if ($data === null) {
-            return null;
+            return false;
         }
 
         $this->redis->zadd($queue . ':reserved', [$data => time() + $this->expire]);
-
         $data = Json::decode($data);
-        $id = $data['id'];
-        $payload = $data['payload'];
-        unset($data['id'], $data['payload']);
-        $data['queue'] = $queue;
 
-        return new Message($id, $payload, $data);
+        return [
+            'id' => $data['id'],
+            'body' => $data['body'],
+            'queue' => $queue,
+        ];
     }
 
     /**
@@ -106,20 +105,20 @@ class RedisQueue extends Component implements QueueInterface
     /**
      * @inheritdoc
      */
-    public function release(Message $message, $delay = 0)
+    public function release(array $message, $delay = 0)
     {
         if ($delay > 0) {
-            $this->redis->zadd($message->getMeta('queue') . ':delayed', [$message->payload => time() + $delay]);
+            $this->redis->zadd($message['queue'] . ':delayed', [$message['body'] => time() + $delay]);
         } else {
-            $this->redis->rpush($message->getMeta('queue'), [$message->payload]);
+            $this->redis->rpush($message['queue'], [$message['body']]);
         }
     }
 
     /**
      * @inheritdoc
      */
-    public function delete(Message $message)
+    public function delete(array $message)
     {
-        $this->redis->zrem($message->getMeta('queue') . ':reserved', $message->payload);
+        $this->redis->zrem($message['queue'] . ':reserved', $message['body']);
     }
 }

@@ -61,19 +61,17 @@ class SqsQueue extends Component implements QueueInterface
         $response = $this->sqs->receiveMessage(['QueueUrl' => $queue]);
 
         if (empty($response['Messages'])) {
-            return null;
+            return false;
         }
 
         $data = reset($response['Messages']);
-        $id = $data['MessageId'];
-        $payload = $data['Body'];
-        unset($data['MessageId'], $data['Body']);
 
-        if (!isset($data['QueueUrl'])) {
-            $data['QueueUrl'] = $queue;
-        }
-
-        return new Message($id, $payload, $data);
+        return [
+            'id' => $data['MessageId'],
+            'body' => $data['Body'],
+            'queue' => $queue,
+            'receipt-handle' => $data['ReceiptHandle'],
+        ];
     }
 
     /**
@@ -86,11 +84,11 @@ class SqsQueue extends Component implements QueueInterface
     /**
      * @inheritdoc
      */
-    public function release(Message $message, $delay = 0)
+    public function release(array $message, $delay = 0)
     {
         $this->sqs->changeMessageVisibility([
-            'QueueUrl' => $message->getMeta('QueueUrl'),
-            'ReceiptHandle' => $message->getMeta('ReceiptHandle'),
+            'QueueUrl' => $message['queue'],
+            'ReceiptHandle' => $message['receipt-handle'],
             'VisibilityTimeout' => $delay,
         ]);
     }
@@ -98,11 +96,11 @@ class SqsQueue extends Component implements QueueInterface
     /**
      * @inheritdoc
      */
-    public function delete(Message $message)
+    public function delete(array $message)
     {
         $this->sqs->deleteMessage([
-            'QueueUrl' => $message->getMeta('QueueUrl'),
-            'ReceiptHandle' => $message->getMeta('ReceiptHandle'),
+            'QueueUrl' => $message['queue'],
+            'ReceiptHandle' => $message['receipt-handle'],
         ]);
     }
 }
